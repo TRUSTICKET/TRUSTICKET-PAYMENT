@@ -1,6 +1,8 @@
 package com.trusticket.trusticketpayment.service;
 
+import com.trusticket.trusticketpayment.common.kafka.KafkaProducer;
 import com.trusticket.trusticketpayment.domain.Payment;
+import com.trusticket.trusticketpayment.dto.PaymentData;
 import com.trusticket.trusticketpayment.dto.PaymentRequest;
 import com.trusticket.trusticketpayment.repository.PaymentRepository;
 import lombok.AllArgsConstructor;
@@ -11,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 @AllArgsConstructor
 public class PaymentService {
     private final PaymentRepository paymentRepository;
+    private final KafkaProducer kafkaProducer;
 
 
     @Transactional
@@ -22,7 +25,10 @@ public class PaymentService {
                 .memberId(req.getMemberId())
                 .build();
 
-        paymentRepository.save(payment);
+        payment = paymentRepository.save(payment);
+
+        String booking = payment.getBookingId().toString();
+        kafkaProducer.sendPaymentSuccess("payment-success", new PaymentData(booking, payment.getPaymentId().toString()));
         return true;
     }
 
